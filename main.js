@@ -1,102 +1,87 @@
-'use strict';
+const statusDisplay = document.querySelector('.game--status');
 
-// brings in the assert module for unit testing
-const assert = require('assert');
-// brings in the readline module to access the command line
-const readline = require('readline');
-// use the readline module to print out to the command line
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout
-});
+let gameActive = true;
+let currentPlayer = "X";
+let gameState = ["", "", "", "", "", "", "", "", ""];
 
-// creates and empty "board" for the user to see where marks can be placed.
-// using let because the variable is expected to change with more 'X's and 'O's to add
-let board = [
-  [' ', ' ', ' '],
-  [' ', ' ', ' '],
-  [' ', ' ', ' ']
+const winningMessage = () => `Player ${currentPlayer} has won!`;
+const drawMessage = () => `Game ended in a draw!`;
+const currentPlayerTurn = () => `It's ${currentPlayer}'s turn`;
+
+statusDisplay.innerHTML = currentPlayerTurn();
+
+const winningConditions = [
+    [0, 1, 2],
+    [3, 4, 5],
+    [6, 7, 8],
+    [0, 3, 6],
+    [1, 4, 7],
+    [2, 5, 8],
+    [0, 4, 8],
+    [2, 4, 6]
 ];
 
-// assigns the first mark as 'X'
-// using let because the variable is expected to change from 'X' to 'O' and back
-let playerTurn = 'X';
-
-// is a function that print the current status of the board using the variable - board
-const printBoard = () => {
-  console.log('   0  1  2');
-  console.log('0 ' + board[0].join(' | '));
-  console.log('  ---------');
-  console.log('1 ' + board[1].join(' | '));
-  console.log('  ---------');
-  console.log('2 ' + board[2].join(' | '));
+function handleCellPlayed(clickedCell, clickedCellIndex) {
+    gameState[clickedCellIndex] = currentPlayer;
+    clickedCell.innerHTML = currentPlayer;
 }
 
-const horizontalWin = () => {
-  // Your code here to check for horizontal wins
+function handlePlayerChange() {
+    currentPlayer = currentPlayer === "X" ? "O" : "X";
+    statusDisplay.innerHTML = currentPlayerTurn();
 }
 
-const verticalWin = () => {
-  // Your code here to check for vertical wins
+function handleResultValidation() {
+    let roundWon = false;
+    for (let i = 0; i <= 7; i++) {
+        const winCondition = winningConditions[i];
+        let a = gameState[winCondition[0]];
+        let b = gameState[winCondition[1]];
+        let c = gameState[winCondition[2]];
+        if (a === '' || b === '' || c === '') {
+            continue;
+        }
+        if (a === b && b === c) {
+            roundWon = true;
+            break
+        }
+    }
+
+    if (roundWon) {
+        statusDisplay.innerHTML = winningMessage();
+        gameActive = false;
+        return;
+    }
+
+    let roundDraw = !gameState.includes("");
+    if (roundDraw) {
+        statusDisplay.innerHTML = drawMessage();
+        gameActive = false;
+        return;
+    }
+
+    handlePlayerChange();
 }
 
-const diagonalWin = () => {
-  // Your code here to check for diagonal wins
+function handleCellClick(clickedCellEvent) {
+    const clickedCell = clickedCellEvent.target;
+    const clickedCellIndex = parseInt(clickedCell.getAttribute('data-cell-index'));
+
+    if (gameState[clickedCellIndex] !== "" || !gameActive) {
+        return;
+    }
+
+    handleCellPlayed(clickedCell, clickedCellIndex);
+    handleResultValidation();
 }
 
-const checkForWin = () => {
-  // Your code here call each of the check for types of wins
+function handleRestartGame() {
+    gameActive = true;
+    currentPlayer = "X";
+    gameState = ["", "", "", "", "", "", "", "", ""];
+    statusDisplay.innerHTML = currentPlayerTurn();
+    document.querySelectorAll('.cell').forEach(cell => cell.innerHTML = "");
 }
 
-const ticTacToe = (row, column) => {
-  // Your code here to place a marker on the board
-  // then check for a win
-}
-
-const getPrompt = () => {
-  printBoard();
-  console.log("It's Player " + playerTurn + "'s turn.");
-  rl.question('row: ', (row) => {
-    rl.question('column: ', (column) => {
-      ticTacToe(row, column);
-      getPrompt();
-    });
-  });
-}
-
-
-// Unit Tests
-// You use them run the command: npm test main.js
-// to close them ctrl + C
-if (typeof describe === 'function') {
-
-  describe('#ticTacToe()', () => {
-    it('should place mark on the board', () => {
-      ticTacToe(1, 1);
-      assert.deepEqual(board, [ [' ', ' ', ' '], [' ', 'X', ' '], [' ', ' ', ' '] ]);
-    });
-    it('should alternate between players', () => {
-      ticTacToe(0, 0);
-      assert.deepEqual(board, [ ['O', ' ', ' '], [' ', 'X', ' '], [' ', ' ', ' '] ]);
-    });
-    it('should check for vertical wins', () => {
-      board = [ [' ', 'X', ' '], [' ', 'X', ' '], [' ', 'X', ' '] ];
-      assert.equal(verticalWin(), true);
-    });
-    it('should check for horizontal wins', () => {
-      board = [ ['X', 'X', 'X'], [' ', ' ', ' '], [' ', ' ', ' '] ];
-      assert.equal(horizontalWin(), true);
-    });
-    it('should check for diagonal wins', () => {
-      board = [ ['X', ' ', ' '], [' ', 'X', ' '], [' ', ' ', 'X'] ];
-      assert.equal(diagonalWin(), true);
-    });
-    it('should detect a win', () => {
-      assert.equal(checkForWin(), true);
-    });
-  });
-} else {
-
-  getPrompt();
-
-}
+document.querySelectorAll('.cell').forEach(cell => cell.addEventListener('click', handleCellClick));
+document.querySelector('.game--restart').addEventListener('click', handleRestartGame);
